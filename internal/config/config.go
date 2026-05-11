@@ -6,38 +6,49 @@ import (
 	"strings"
 )
 
-// Config holds the runtime configuration for vaultpull.
+// Config holds all runtime configuration for vaultpull.
 type Config struct {
-	VaultAddr  string
-	VaultToken string
-	Namespace  string
-	OutputFile string
-	Prefix     string
+	VaultAddress string
+	VaultToken   string
+	SecretPath   string
+	OutputFile   string
+	Namespaces   []string
+	StripPrefix  bool
 }
 
-// Load reads configuration from environment variables with sensible defaults.
+// Load reads configuration from environment variables.
 func Load() (*Config, error) {
-	addr := getEnv("VAULT_ADDR", "http://127.0.0.1:8200")
-	token := os.Getenv("VAULT_TOKEN")
+	addr := getEnv("VAULT_ADDR", "")
+	if addr == "" {
+		return nil, errors.New("VAULT_ADDR is required")
+	}
+	token := getEnv("VAULT_TOKEN", "")
 	if token == "" {
-		return nil, errors.New("VAULT_TOKEN environment variable is required")
+		return nil, errors.New("VAULT_TOKEN is required")
 	}
 
-	namespace := getEnv("VAULTPULL_NAMESPACE", "secret")
-	output := getEnv("VAULTPULL_OUTPUT", ".env")
-	prefix := strings.ToUpper(getEnv("VAULTPULL_PREFIX", ""))
+	var namespaces []string
+	if ns := getEnv("VAULT_NAMESPACES", ""); ns != "" {
+		for _, n := range strings.Split(ns, ",") {
+			n = strings.TrimSpace(n)
+			if n != "" {
+				namespaces = append(namespaces, n)
+			}
+		}
+	}
 
 	return &Config{
-		VaultAddr:  addr,
-		VaultToken: token,
-		Namespace:  namespace,
-		OutputFile: output,
-		Prefix:     prefix,
+		VaultAddress: addr,
+		VaultToken:   token,
+		SecretPath:   getEnv("VAULT_SECRET_PATH", "secret/data/app"),
+		OutputFile:   getEnv("OUTPUT_FILE", ".env"),
+		Namespaces:   namespaces,
+		StripPrefix:  getEnv("STRIP_PREFIX", "false") == "true",
 	}, nil
 }
 
 func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	if v, ok := os.LookupEnv(key); ok {
 		return v
 	}
 	return fallback
