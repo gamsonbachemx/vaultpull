@@ -52,3 +52,20 @@ func (f *Filter) StripPrefix(key string) string {
 	}
 	return key
 }
+
+// ApplyAndStrip filters a map of secrets and strips the matched namespace
+// prefix from each key in the result. Keys that do not match any configured
+// namespace are excluded. If no namespaces are configured, all keys are
+// returned with no prefix modification.
+func (f *Filter) ApplyAndStrip(secrets map[string]string) map[string]string {
+	if len(f.namespaces) == 0 {
+		return secrets
+	}
+	result := make(map[string]string, len(secrets))
+	for k, v := range secrets {
+		if f.Match(k) {
+			result[f.StripPrefix(k)] = v
+		}
+	}
+	return result
+}
