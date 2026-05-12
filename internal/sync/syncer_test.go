@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"vaultpull/internal/config"
@@ -88,5 +89,13 @@ func TestRun_WritesSecrets(t *testing.T) {
 
 	if len(data) == 0 {
 		t.Error("expected output file to have content, got empty file")
+	}
+
+	// Verify that each expected key appears in the output file.
+	content := string(data)
+	for key := range secrets {
+		if !strings.Contains(content, key) {
+			t.Errorf("expected output file to contain key %q, but it did not", key)
+		}
 	}
 }
