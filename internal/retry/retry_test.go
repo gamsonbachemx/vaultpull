@@ -69,6 +69,9 @@ func TestDo_ContextCancelled(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error due to cancelled context")
 	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled in error chain, got %v", err)
+	}
 }
 
 func TestDefaultConfig(t *testing.T) {
