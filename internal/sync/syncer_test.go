@@ -25,6 +25,19 @@ func newVaultTestServer(t *testing.T, secrets map[string]interface{}) *httptest.
 	}))
 }
 
+// newTestConfig is a helper that creates a Config pointing at the given test
+// server URL and a temporary output file, reducing boilerplate across tests.
+func newTestConfig(t *testing.T, serverURL string) *config.Config {
+	t.Helper()
+	tmpDir := t.TempDir()
+	return &config.Config{
+		VaultAddress: serverURL,
+		VaultToken:   "test-token",
+		SecretPath:   "secret/data/app",
+		OutputFile:   filepath.Join(tmpDir, ".env"),
+	}
+}
+
 func TestNew_NilConfig(t *testing.T) {
 	_, err := New(nil)
 	if err == nil {
@@ -36,15 +49,7 @@ func TestNew_Valid(t *testing.T) {
 	server := newVaultTestServer(t, map[string]interface{}{})
 	defer server.Close()
 
-	tmpDir := t.TempDir()
-	outFile := filepath.Join(tmpDir, ".env")
-
-	cfg := &config.Config{
-		VaultAddress: server.URL,
-		VaultToken:   "test-token",
-		SecretPath:   "secret/data/app",
-		OutputFile:   outFile,
-	}
+	cfg := newTestConfig(t, server.URL)
 
 	syncer, err := New(cfg)
 	if err != nil {
@@ -63,15 +68,7 @@ func TestRun_WritesSecrets(t *testing.T) {
 	server := newVaultTestServer(t, secrets)
 	defer server.Close()
 
-	tmpDir := t.TempDir()
-	outFile := filepath.Join(tmpDir, ".env")
-
-	cfg := &config.Config{
-		VaultAddress: server.URL,
-		VaultToken:   "test-token",
-		SecretPath:   "secret/data/app",
-		OutputFile:   outFile,
-	}
+	cfg := newTestConfig(t, server.URL)
 
 	syncer, err := New(cfg)
 	if err != nil {
@@ -82,7 +79,7 @@ func TestRun_WritesSecrets(t *testing.T) {
 		t.Fatalf("unexpected error running sync: %v", err)
 	}
 
-	data, err := os.ReadFile(outFile)
+	data, err := os.ReadFile(cfg.OutputFile)
 	if err != nil {
 		t.Fatalf("failed to read output file: %v", err)
 	}
