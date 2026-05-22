@@ -103,3 +103,19 @@ func TestRead_MissingSeparator(t *testing.T) {
 		t.Fatal("expected error for line missing '=', got nil")
 	}
 }
+
+func TestRead_EmptyValue(t *testing.T) {
+	dir := t.TempDir()
+	p := writeEnvFile(t, dir, ".env", "EMPTY=\n")
+
+	r := NewReader(p)
+	got, err := r.Read()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v, ok := got["EMPTY"]; !ok {
+		t.Error("expected EMPTY key to be present")
+	} else if v != "" {
+		t.Errorf("EMPTY: want empty string, got %q", v)
+	}
+}
