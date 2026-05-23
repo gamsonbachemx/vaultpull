@@ -102,3 +102,17 @@ func TestRun_ReturnsContextError(t *testing.T) {
 		t.Errorf("expected context.Canceled, got %v", err)
 	}
 }
+
+func TestRun_NoSyncWhenContextAlreadyCanceled(t *testing.T) {
+	s := &mockSyncer{}
+	w, _ := watch.New(s, watch.Config{Interval: time.Second})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_ = w.Run(ctx)
+
+	if s.calls.Load() != 0 {
+		t.Errorf("expected no sync calls when context is pre-cancelled, got %d", s.calls.Load())
+	}
+}
